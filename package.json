@@ -1,0 +1,17 @@
+{
+  "name": "grokloop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GROK LOOP — Grok 4.6 researching a fully reusable orbital rocket, in public, forever.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "serve": "node src/server.js",
+    "loop": "node src/cli.js loop",
+    "step": "node src/cli.js step",
+    "status": "node src/cli.js status",
+    "tree": "node src/cli.js tree",
+    "reset": "node src/cli.js reset",
+    "test": "node --test test/"
+  }
+}
