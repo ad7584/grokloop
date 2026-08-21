@@ -86,6 +86,25 @@ export function load() {
       if (n.status === 'exploring') n.status = 'open';
     }
 
+    /* Prune branches that were built before engines were checked at proposal
+     * time. A stage carrying an engine that cannot legally fly it — wrong
+     * propellant, no rapid-reuse history — can only ever end in a bookkeeping
+     * kill, so walking it any further is wasted spend. Marked trivial so the
+     * pruning itself is not mistaken for a research finding. */
+    let pruned = 0;
+    for (const n of Object.values(s.nodes || {})) {
+      if (n.status !== 'open') continue;
+      const bad = (n.design?.stages || []).findIndex((st, i) =>
+        st.engine && !compatibleEngines(st, i).includes(st.engine));
+      if (bad === -1) continue;
+      const st = n.design.stages[bad];
+      n.status = 'blocked';
+      n.trivial = true;
+      n.blockedReason = `${st.name || 'stage ' + (bad + 1)} carries ${st.engine}, which cannot fly it — pruned on restart`;
+      pruned++;
+    }
+    if (pruned) console.log(`pruned ${pruned} branches carrying an engine that cannot fly their stage`);
+
     return { ...blank(), ...s };
   } catch {
     return blank();
