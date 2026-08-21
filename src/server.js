@@ -38,8 +38,7 @@ function pushStatus(status) {
 }
 
 /* The site is public and read-only — there is no write endpoint and nothing
- * user-specific to leak — so a Vercel-hosted front end reading a Railway API is
- * simply allowed. */
+ * user-specific to leak — so a front end on another origin may read the API. */
 const CORS = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",

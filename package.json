@@ -4,8 +4,11 @@
   "private": true,
   "type": "module",
   "description": "GROK LOOP — Grok 4.6 researching a fully reusable orbital rocket, in public, forever.",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
+    "start": "node src/server.js",
     "serve": "node src/server.js",
     "loop": "node src/cli.js loop",
     "step": "node src/cli.js step",
