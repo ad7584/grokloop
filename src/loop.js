@@ -384,9 +384,13 @@ export async function step(s = state()) {
         `rapid-reuse service history — every ${fuel} engine ever flown was either expended or rebuilt for months between flights`;
       node.plainBlocked = `there is no ${fuel} engine on earth that can land itself and fly again quickly. ` +
         `every one ever built was thrown away or rebuilt for months`;
+      // The node's own label names its LAST decision, which may be a different
+      // stage's fuel. The kill is about this stage, so the post says so.
       record(s, {
         type: 'blocked', nodeId: node.id, parentId: node.parentId, slot: slot.key,
-        label: node.label, plain: node.plain, bound: node.bound,
+        label: `${st.name} on ${fuel}`,
+        plain: `a reusable ${fuel} ${st.name.toLowerCase()}`,
+        bound: node.bound,
         message: `${node.label} — blocked: ${node.blockedReason}`,
         blockedReason: node.blockedReason, plainReason: node.plainBlocked, trivial: false,
       });
