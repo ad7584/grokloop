@@ -213,12 +213,31 @@ function buildPrompt(s, node) {
     'is dense so the tank can be much smaller." That line is published verbatim.',
     '',
     `Reply with JSON in exactly this shape: ${SCHEMAS[slot.key]}`,
-    VALID[slot.key] ? `Valid values for this field: ${VALID[slot.key]().join(', ')}` : '',
+    slot.key === 'engine'
+      ? `Engines that can fly this stage (same propellant, sea-level capable if it is the booster, ` +
+        `restartable in flight, rapid-reuse history): ${compatibleEngines(stage, node.cursor.stageIndex).join(', ')}. ` +
+        `Choose ONLY from these; anything else is discarded unread.`
+      : VALID[slot.key] ? `Valid values for this field: ${VALID[slot.key]().join(', ')}` : '',
   ].filter(Boolean).join('\n');
 }
 
+/**
+ * Engines that can legally fly a given stage of THIS mission: same propellant,
+ * sea-level capable if it is the booster, able to restart in flight (every
+ * stage lands propulsively) and with a rapid-reuse service history (every
+ * stage is reflown). Checked at proposal time, because discovering a mismatch
+ * at the end of a sixteen-decision path wasted hundreds of branches.
+ */
+export function compatibleEngines(stage, stageIndex) {
+  return Object.entries(ENGINES)
+    .filter(([, e]) => e.propellant === stage?.propellant)
+    .filter(([, e]) => stageIndex > 0 || e.sealevel)
+    .filter(([, e]) => e.restartInFlight !== false && e.rapidReuse !== false)
+    .map(([k]) => k);
+}
+
 /** Drop anything the model made up before it reaches the solver. */
-function sanitise(slotKey, opt) {
+function sanitise(slotKey, opt, ctx = {}) {
   if (!opt || typeof opt !== 'object') return null;
   const bad = (msg) => ({ __invalid: msg });
 
@@ -237,6 +256,9 @@ function sanitise(slotKey, opt) {
       break;
     case 'engine':
       if (!ENGINES[opt.engine]) return bad(`invented engine "${opt.engine}"`);
+      if (ctx.stage && !compatibleEngines(ctx.stage, ctx.stageIndex).includes(opt.engine)) {
+        return bad(`${ENGINES[opt.engine].name} cannot fly this stage — wrong propellant, not sea-level capable, cannot restart in flight, or no rapid-reuse history`);
+      }
       if (!Number.isInteger(opt.engineCount) || opt.engineCount < 1 || opt.engineCount > 40) {
         return bad(`engine count ${opt.engineCount} — must be a whole number from 1 to 40, and it is checked against liftoff weight`);
       }
@@ -326,6 +348,35 @@ export async function step(s = state()) {
   node.status = 'exploring';
 
   const slot = SLOTS[node.cursor.slotIndex];
+
+  /* A stage with no legal engine is dead before any question is worth asking.
+   * Hydrogen is the live case: its only sea-level engine (RS-25) and its only
+   * upper-stage engine (RL10) are both disqualified from rapid reuse by their
+   * service history, so a reusable hydrogen stage cannot be built from flown
+   * hardware — which is exactly why nobody has built one. Saying so here costs
+   * nothing; finding out sixteen decisions later cost 297 branches. */
+  if (slot.key === 'engine') {
+    const st = node.design.stages[node.cursor.stageIndex];
+    if (compatibleEngines(st, node.cursor.stageIndex).length === 0) {
+      const fuel = { 'LOX/LH2': 'hydrogen', 'LOX/CH4': 'methane', 'LOX/RP-1': 'kerosene' }[st.propellant] ?? st.propellant;
+      node.status = 'blocked';
+      node.blockedReason = `no engine in the catalogue burns ${st.propellant}` +
+        `${node.cursor.stageIndex === 0 ? ', runs at sea level' : ''}, restarts in flight and has a ` +
+        `rapid-reuse service history — every ${fuel} engine ever flown was either expended or rebuilt for months between flights`;
+      node.plainBlocked = `there is no ${fuel} engine on earth that can land itself and fly again quickly. ` +
+        `every one ever built was thrown away or rebuilt for months`;
+      record(s, {
+        type: 'blocked', nodeId: node.id, parentId: node.parentId, slot: slot.key,
+        label: node.label, plain: node.plain, bound: node.bound,
+        message: `${node.label} — blocked: ${node.blockedReason}`,
+        blockedReason: node.blockedReason, plainReason: node.plainBlocked, trivial: false,
+      });
+      s.step += 1;
+      save(s);
+      return { state: s, nodeId: node.id, slot: slot.key, created: 0, blocked: 1, costUsd: 0, solved: false };
+    }
+  }
+
   record(s, {
     type: 'question',
     nodeId: node.id,
@@ -386,7 +437,10 @@ export async function step(s = state()) {
 
   const made = [];
   for (const raw of options.slice(0, 4)) {
-    const clean = sanitise(slot.key, raw);
+    const clean = sanitise(slot.key, raw, {
+      stage: node.design.stages?.[node.cursor.stageIndex],
+      stageIndex: node.cursor.stageIndex,
+    });
     if (!clean) continue;
     if (clean.__invalid) {
       record(s, { type: 'rejected', nodeId: node.id, message: `option discarded: ${clean.__invalid}` });
@@ -402,6 +456,8 @@ export async function step(s = state()) {
       nodeId: child.id,
       parentId: node.id,
       slot: slot.key,
+      short: slot.short,
+      stage: slot.scope === 'stage' ? (node.design.stages?.[node.cursor.stageIndex]?.name ?? null) : null,
       label: child.label,
       reasoning: child.reasoning,
       plain: child.plain,
