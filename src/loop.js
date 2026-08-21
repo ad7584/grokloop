@@ -138,7 +138,7 @@ export const spentToday = (s) => s.spend[today()] || 0;
 function charge(s, usd) { s.spend[today()] = (s.spend[today()] || 0) + (usd || 0); }
 
 function record(s, ev) {
-  const e = emit(ev);
+  const e = emit({ step: s.step, ...ev });
   s.events.push(e);
   if (s.events.length > MAX_EVENTS) s.events = s.events.slice(-MAX_EVENTS);
   return e;
@@ -384,6 +384,10 @@ export async function step(s = state()) {
         `rapid-reuse service history — every ${fuel} engine ever flown was either expended or rebuilt for months between flights`;
       node.plainBlocked = `there is no ${fuel} engine on earth that can land itself and fly again quickly. ` +
         `every one ever built was thrown away or rebuilt for months`;
+      // The node's identity becomes the stage that killed it, so the archive,
+      // the kill post and any backtrack away from it all describe the same thing.
+      node.label = `${st.name} on ${fuel}`;
+      node.plain = `a reusable ${fuel} ${st.name.toLowerCase()}`;
       // The node's own label names its LAST decision, which may be a different
       // stage's fuel. The kill is about this stage, so the post says so.
       record(s, {
