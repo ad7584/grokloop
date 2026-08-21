@@ -22,7 +22,7 @@ import { TPS } from '../data/constants.js';
 
 /* Where the research lives.
  *
- * Configurable because a container filesystem is ephemeral: on Railway a
+ * Configurable because a container filesystem is ephemeral: in production a
  * redeploy would wipe loop.json and the search would silently restart from an
  * empty tree, which for a project whose whole value is an accumulating record
  * is the worst possible failure. In production this points at a mounted volume.
@@ -78,7 +78,7 @@ export function load() {
     resetIds(maxId + 1);
 
     /* Heal transient statuses. 'exploring' means a request was in flight when
-     * the process died — on Railway that is every redeploy — and nothing will
+     * the process died — in production that is every redeploy — and nothing will
      * ever select that node again, so a crash at the wrong moment leaves the
      * search permanently wedged. In-flight work is simply open work after a
      * restart. */

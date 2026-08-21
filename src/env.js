@@ -1,4 +1,4 @@
-// Zero-dependency .env loader. Real environment variables win, so Railway
+// Zero-dependency .env loader. Real environment variables win, so hosted
 // config overrides the file without anyone having to delete it.
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';

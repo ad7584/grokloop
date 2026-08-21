@@ -1,7 +1,7 @@
 // Where the API lives.
 //
-// Empty means same origin, which is how it runs on Railway (one server for both
-// the site and the API) and locally. The Vercel build overwrites this file with
-// the Railway URL, because a static front end on one host cannot reach an API on
-// another with relative paths.
+// Empty means same origin — one server for both the site and the API, which is
+// how it runs locally. A static deployment of the front end on another host
+// overwrites this file with the API origin, because relative paths cannot
+// reach an API on a different host.
 window.GROKLOOP_API = '';

@@ -15,8 +15,7 @@ const fmt = (kg) => kg >= 1e6 ? (kg / 1e6).toFixed(2) + ' kt'
   : Math.round(kg) + ' kg';
 const clock = (ms) => new Date(ms).toTimeString().slice(0, 8);
 
-// Empty on Railway and locally (same origin); the Railway URL when the front
-// end is served from Vercel.
+// Empty when the site and the API share an origin; the API origin otherwise.
 const API = (typeof window !== "undefined" && window.GROKLOOP_API) || "";
 
 function eventLine(ev) {

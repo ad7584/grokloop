@@ -8,11 +8,5 @@ dist/
 .vercel
 .claude/
 
-# operational, not part of the research repo
-src/x.js
-test/x.test.js
-railway.json
-vercel.json
-scripts/
-prod-snap.json
-src/extras.js
+# local deployment files
+*.local.*
